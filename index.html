@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Café Maya | A community coffeeshop in Jaro, Iloilo City</title>
+    <meta name="description" content="Café Maya is a community coffeeshop at 33 Cuartero Street, Jaro, Iloilo City. Beans sourced across the Philippines. Open daily, 8am to 10pm. Also on Grab and Foodpanda." />
+    <meta name="theme-color" content="#0f1830" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Café Maya | A community coffeeshop in Jaro, Iloilo" />
+    <meta property="og:description" content="Beans sourced across the Philippines. Open daily 8am to 10pm at 33 Cuartero Street, Jaro, Iloilo City." />
+    <meta property="og:image" content="/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/newsreader-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/archivo-400.woff2" crossorigin />
+    <!-- the first hero slide is the LCP image: let the browser start it before React mounts -->
+    <link rel="preload" as="image" href="/img/p05-platesm.webp" imagesrcset="/img/p05-platesm.webp 760w, /img/p05-plate.webp 1240w" imagesizes="(max-width: 900px) 78vw, 34vw" fetchpriority="high" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CafeOrCoffeeShop",
+        "name": "Café Maya",
+        "description": "A community coffeeshop sourcing beans all over the Philippines.",
+        "image": "/og.jpg",
+        "priceRange": "$$",
+        "address": { "@type": "PostalAddress", "streetAddress": "33 Cuartero Street, Jaro", "addressLocality": "Iloilo City", "addressCountry": "PH" },
+        "geo": { "@type": "GeoCoordinates", "latitude": 10.7261815, "longitude": 122.5516998 },
+        "openingHoursSpecification": { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], "opens": "08:00", "closes": "22:00" },
+        "sameAs": ["https://www.instagram.com/cafemaya.ph/", "https://www.facebook.com/cafemaya.ph"]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
