@@ -5,7 +5,8 @@ import { photo, src, srcSet } from '@/data/images'
 import { delivery, nav, site } from '@/data/site'
 import { useOpenStatus } from '@/hooks/useOpenStatus'
 import { useScrollTo } from '@/hooks/useSmoothScroll'
-import { FacebookIcon, InstagramIcon } from './Icons'
+import { Button } from '@/components/ui/button'
+import { FacebookIcon, InstagramIcon, FoodpandaIcon, GrabFoodIcon } from './Icons'
 
 const WORDMARK = 'café maya'
 
@@ -48,16 +49,37 @@ export function Footer() {
             </span>
           </div>
           <div className="band__delivery">
-            <span>Or stay in:</span>
-            {delivery.map((d) =>
-              d.href ? (
-                <a key={d.name} href={d.href} target="_blank" rel="noreferrer" className="pill">
-                  {d.name} <ArrowUpRight size={14} aria-hidden="true" />
-                </a>
-              ) : (
-                <span key={d.name} className="pill pill--flat" title={d.note}>{d.name}</span>
-              ),
-            )}
+            <span className="text-sm text-white/70">Or stay in:</span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {delivery.map((d) => {
+                const isPanda = d.name.toLowerCase().includes('foodpanda')
+                const isGrab = d.name.toLowerCase().includes('grab')
+                const Icon = isPanda ? FoodpandaIcon : isGrab ? GrabFoodIcon : null
+
+                return d.href ? (
+                  <Button
+                    key={d.name}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-2 rounded-full border-white/20 bg-white/10 px-3.5 text-xs font-normal text-white hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                    render={<a href={d.href} target="_blank" rel="noreferrer" />}
+                  >
+                    {Icon && <Icon size={15} />}
+                    <span>{d.name}</span>
+                    <ArrowUpRight size={13} className="opacity-60" />
+                  </Button>
+                ) : (
+                  <span
+                    key={d.name}
+                    className="inline-flex h-8 items-center gap-2 rounded-full border border-dashed border-white/20 px-3.5 text-xs text-white/60"
+                    title={d.note}
+                  >
+                    {Icon && <Icon size={15} />}
+                    <span>{d.name}</span>
+                  </span>
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>
@@ -94,15 +116,28 @@ export function Footer() {
           <div>
             <h2 className="footer__h">Order & follow</h2>
             <ul>
-              {delivery.map((d) => (
-                <li key={d.name}>
-                  {d.href ? (
-                    <a className="link" href={d.href} target="_blank" rel="noreferrer"><span>{d.name} <ArrowUpRight size={13} aria-hidden="true" /></span></a>
-                  ) : (
-                    <span className="footer__muted">{d.name}, {d.note.toLowerCase()}</span>
-                  )}
-                </li>
-              ))}
+              {delivery.map((d) => {
+                const isPanda = d.name.toLowerCase().includes('foodpanda')
+                const isGrab = d.name.toLowerCase().includes('grab')
+                const Icon = isPanda ? FoodpandaIcon : isGrab ? GrabFoodIcon : null
+                const linkClass = isPanda ? 'link link--foodpanda' : isGrab ? 'link link--grab' : 'link'
+
+                return (
+                  <li key={d.name}>
+                    {d.href ? (
+                      <a className={linkClass} href={d.href} target="_blank" rel="noreferrer">
+                        <span>
+                          {Icon && <Icon size={17} />} {d.name} <ArrowUpRight size={13} aria-hidden="true" />
+                        </span>
+                      </a>
+                    ) : (
+                      <span className="footer__muted">
+                        {Icon && <Icon size={17} />} {d.name}, {d.note.toLowerCase()}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
               <li><a className="link" href={site.instagram} target="_blank" rel="noreferrer"><span><InstagramIcon /> {site.handle}</span></a></li>
               <li><a className="link" href={site.facebook} target="_blank" rel="noreferrer"><span><FacebookIcon /> Café Maya</span></a></li>
             </ul>

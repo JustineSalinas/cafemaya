@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { src, srcSet, type Photo } from '@/data/images'
 
 interface LightboxProps {
@@ -12,7 +13,7 @@ interface LightboxProps {
 
 export function Lightbox({ photos, index, onClose, onIndex }: LightboxProps) {
   const reduce = useReducedMotion()
-  const dir = useRef(1)
+  const [dir, setDir] = useState(1)
   const strip = useRef<HTMLDivElement>(null)
   const open = index !== null
   const photo = open ? photos[index] : null
@@ -20,7 +21,7 @@ export function Lightbox({ photos, index, onClose, onIndex }: LightboxProps) {
   const step = useCallback(
     (d: number) => {
       if (index === null) return
-      dir.current = d
+      setDir(d)
       onIndex((index + d + photos.length) % photos.length)
     },
     [index, onIndex, photos.length],
@@ -42,7 +43,6 @@ export function Lightbox({ photos, index, onClose, onIndex }: LightboxProps) {
     }
   }, [open, onClose, step])
 
-  // keep the active thumbnail in view
   useEffect(() => {
     if (index === null) return
     strip.current?.querySelector('[data-on="true"]')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest', inline: 'center' })
@@ -61,28 +61,47 @@ export function Lightbox({ photos, index, onClose, onIndex }: LightboxProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.35 }}
+          transition={{ duration: 0.25 }}
           data-lenis-prevent
         >
           <motion.div className="lb__scrim" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
 
           <header className="lb__bar">
-            <span className="lb__count"><b>{String(index + 1).padStart(2, '0')}</b> / {String(photos.length).padStart(2, '0')}</span>
-            <button className="lb__close" onClick={onClose} aria-label="Close photo viewer"><X size={18} /><span>Close</span></button>
+            <span className="lb__count">
+              <b>{String(index + 1).padStart(2, '0')}</b> / {String(photos.length).padStart(2, '0')}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="h-8 gap-1.5 rounded-full border-white/20 bg-black/40 px-3 text-xs text-white hover:bg-white/20 hover:text-white backdrop-blur-md"
+              aria-label="Close photo viewer"
+            >
+              <X size={14} />
+              <span>Close</span>
+            </Button>
           </header>
 
           <div className="lb__stage">
-            <button className="lb__nav lb__nav--prev" onClick={() => step(-1)} aria-label="Previous photo"><ChevronLeft size={26} /></button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => step(-1)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full border-white/20 bg-black/40 text-white hover:bg-white/20 hover:text-white backdrop-blur-md shadow-lg"
+              aria-label="Previous photograph"
+            >
+              <ChevronLeft size={20} />
+            </Button>
 
-            <AnimatePresence initial={false} mode="popLayout" custom={dir.current}>
+            <AnimatePresence initial={false} mode="popLayout" custom={dir}>
               <motion.figure
                 key={photo.id}
                 className="lb__fig"
-                custom={dir.current}
-                initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir.current * 70, scale: 0.97 }}
+                custom={dir}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, x: dir * 70, scale: 0.97 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir.current * -70, scale: 0.97 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, x: dir * -70, scale: 0.97 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 drag={reduce ? false : 'x'}
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.18}
@@ -97,25 +116,34 @@ export function Lightbox({ photos, index, onClose, onIndex }: LightboxProps) {
               </motion.figure>
             </AnimatePresence>
 
-            <button className="lb__nav lb__nav--next" onClick={() => step(1)} aria-label="Next photo"><ChevronRight size={26} /></button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => step(1)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full border-white/20 bg-black/40 text-white hover:bg-white/20 hover:text-white backdrop-blur-md shadow-lg"
+              aria-label="Next photograph"
+            >
+              <ChevronRight size={20} />
+            </Button>
           </div>
 
-          <div className="lb__strip" ref={strip} role="group" aria-label="Choose a photo">
-            {photos.map((ph, i) => (
-              <button
-                key={ph.id}
-                data-on={i === index}
-                className={i === index ? 'is-on' : ''}
-                onClick={() => { dir.current = i > index ? 1 : -1; onIndex(i) }}
-                aria-label={`Photo ${i + 1}: ${ph.alt}`}
-                aria-current={i === index}
-              >
-                <img src={`/img/${ph.id}-xs.webp`} alt="" width={ph.w} height={ph.h} loading="lazy" decoding="async" />
-              </button>
-            ))}
+          <div className="lb__dock">
+            <div className="lb__strip" ref={strip} role="group" aria-label="Choose a photo">
+              {photos.map((ph, i) => (
+                <button
+                  key={ph.id}
+                  data-on={i === index}
+                  className={i === index ? 'is-on' : ''}
+                  onClick={() => { setDir(i > index ? 1 : -1); onIndex(i) }}
+                  aria-label={`Photo ${i + 1}: ${ph.alt}`}
+                  aria-current={i === index}
+                >
+                  <img src={`/img/${ph.id}-xs.webp`} alt="" width={ph.w} height={ph.h} loading="lazy" decoding="async" />
+                </button>
+              ))}
+            </div>
+            <p className="lb__hint">Drag, swipe or use the arrow keys</p>
           </div>
-
-          <p className="lb__hint">Drag, swipe or use the arrow keys</p>
         </motion.div>
       )}
     </AnimatePresence>

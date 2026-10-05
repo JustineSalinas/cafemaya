@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Clock, ExternalLink, MapPin, Navigation, Bike } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Map, MapControls, MapMarker, MarkerContent, MarkerPopup } from '@/components/ui/map'
 import { site } from '@/data/site'
 import { useOpenStatus } from '@/hooks/useOpenStatus'
-import { FacebookIcon, InstagramIcon } from './Icons'
+import { FacebookIcon, InstagramIcon, FoodpandaIcon, GrabFoodIcon } from './Icons'
 
 export function Visit() {
   const status = useOpenStatus()
@@ -62,7 +63,42 @@ export function Visit() {
             </div>
             <div>
               <dt><Bike size={18} aria-hidden="true" /> Delivery</dt>
-              <dd>{site.delivery.join(' and ')}</dd>
+              <dd className="visit__delivery">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 rounded-full border-white/20 bg-white/10 px-3.5 text-xs font-normal text-white hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                  render={
+                    <a
+                      href="https://www.foodpanda.ph/restaurant/j48v/cafe-maya-cuartero-street"
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Order online via Foodpanda"
+                    />
+                  }
+                >
+                  <FoodpandaIcon size={16} />
+                  <span>Foodpanda</span>
+                  <ExternalLink size={12} className="opacity-60" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 rounded-full border-white/20 bg-white/10 px-3.5 text-xs font-normal text-white hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                  render={
+                    <a
+                      href="https://food.grab.com/ph/"
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Search Café Maya in the Grab app"
+                    />
+                  }
+                >
+                  <GrabFoodIcon size={16} />
+                  <span>GrabFood</span>
+                  <ExternalLink size={12} className="opacity-60" aria-hidden="true" />
+                </Button>
+              </dd>
             </div>
           </dl>
           <a className="btn btn--solid" href={site.mapsUrl} target="_blank" rel="noreferrer"><Navigation size={16} aria-hidden="true" /> Get directions</a>

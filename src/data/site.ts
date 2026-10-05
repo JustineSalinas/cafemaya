@@ -11,11 +11,16 @@ export const site = {
   delivery: ['Grab', 'Foodpanda'],
 } as const
 
-/** Grab is app-only: there is no public web listing to link to. */
-export const delivery = [
+export interface DeliveryOption {
+  name: string
+  href: string | null
+  note: string
+}
+
+export const delivery: readonly DeliveryOption[] = [
   { name: 'Foodpanda', href: 'https://www.foodpanda.ph/restaurant/j48v/cafe-maya-cuartero-street', note: 'Order online' },
-  { name: 'GrabFood', href: null, note: 'Search Café Maya in the Grab app' },
-] as const
+  { name: 'GrabFood', href: 'https://food.grab.com/ph/', note: 'Search Café Maya in the Grab app' },
+]
 
 export const nav = [
   { id: 'about', label: 'About' },

@@ -139,110 +139,154 @@ interface LeafProps {
 
 function Leaf({ i, total, flipped, delay, single, index, maxIndex, front, back, onSet, reduce }: LeafProps) {
   const rot = useMotionValue(flipped ? -180 : 0)
-  const grab = useRef<{ spine: number; radius: number } | null>(null)
-  const moved = useRef(false)
+  const isDraggingRef = useRef(false)
   const frontRef = useRef<HTMLDivElement>(null)
   const backRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (grab.current) return
+    if (isDraggingRef.current) return
     const target = flipped ? -180 : 0
     if (reduce) { rot.set(target); return }
-    const controls = animate(rot, target, { type: 'spring', stiffness: 115, damping: 21, mass: 0.9, restDelta: 0.4, delay })
+    const controls = animate(rot, target, {
+      type: 'spring',
+      stiffness: 180,
+      damping: 24,
+      mass: 0.8,
+      restDelta: 0.2,
+      delay,
+    })
     return () => controls.stop()
   }, [flipped, delay, reduce, rot])
 
-  const z = useTransform(rot, (r) => (r < -90 ? i : total - i))
-  // the face darkens as it rolls away from the light
-  const shade = useTransform(rot, [-180, -135, -90, -45, 0], [0, 0.1, 0.42, 0.14, 0])
-  // a specular sweep crosses the sheet mid-turn
-  const sheen = useTransform(rot, [-180, -120, -90, -60, 0], [0, 0.35, 0.55, 0.3, 0])
-  // the sheet lifts off the spine as it passes vertical
-  const lift = useTransform(rot, (r) => Math.sin((r / 180) * Math.PI) * -12)
+  // While turning, maintain high z-index so the active sheet never drops beneath neighboring pages
+  const z = useTransform(rot, (r) => {
+    if (isDraggingRef.current || (r > -178 && r < -2)) {
+      return total + 50
+    }
+    return r <= -90 ? i + 1 : total - i
+  })
+
+  // The face darkens as it rolls away from the light source
+  const shade = useTransform(rot, [-180, -135, -90, -45, 0], [0, 0.12, 0.45, 0.14, 0])
+  // Specular sweep cross-lighting as page stands perpendicular
+  const sheen = useTransform(rot, [-180, -120, -90, -60, 0], [0, 0.4, 0.6, 0.35, 0])
+  // Dynamic 3D elevation towards camera during the turn
+  const lift = useTransform(rot, [-180, -90, 0], [0, 24, 0])
 
   const frontVisible = i === index
   const backVisible = !single && i === index - 1
   const canFlipForward = !flipped && i === index && index < maxIndex
   const canFlipBack = flipped && !single && i === index - 1
 
-  /**
-   * Native pointer handling: a horizontal drag turns the sheet 1:1 with the
-   * finger, while a vertical move is left alone so the page can still scroll.
-   */
-  const makeDown = (face: 'front' | 'back') => (e: globalThis.PointerEvent) => {
+  const handlePointerDown = (face: 'front' | 'back') => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
     const turnable = face === 'front' ? canFlipForward : canFlipBack
-    // in single-page mode the current sheet also accepts a backwards swipe
-    if (e.button > 0 || (!turnable && !(single && i === index))) return
+    if (!turnable && !(single && i === index)) return
+
     const el = (face === 'front' ? frontRef : backRef).current
     if (!el) return
+
     const rect = el.getBoundingClientRect()
-    // the sheet pivots on the spine: its left edge when closed, its right edge once turned
-    const spine = single ? rect.left : face === 'front' ? rect.left : rect.right
+    const spineX = single ? rect.left : face === 'front' ? rect.left : rect.right
+    const pageW = Math.max(100, rect.width)
     const startX = e.clientX
     const startY = e.clientY
-    const radius = Math.max(60, Math.abs(startX - spine))
-    moved.current = false
-    let active = false
+    const grabOffset = face === 'front' ? Math.max(20, startX - spineX) : Math.max(20, spineX - startX)
+    const R = Math.max(pageW * 0.45, grabOffset)
+
+    let dragging = false
     let lastX = startX
     let lastT = performance.now()
     let velocity = 0
 
-    const move = (ev: globalThis.PointerEvent) => {
+    isDraggingRef.current = true
+
+    const onPointerMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX
-      if (!active) {
-        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(ev.clientY - startY)) return
-        active = true
-        moved.current = true
-        grab.current = { spine, radius }
-        try { el.setPointerCapture(ev.pointerId) } catch { /* capture is a nicety, not required */ }
+      const dy = ev.clientY - startY
+      if (!dragging) {
+        if (Math.hypot(dx, dy) < 6) return
+        if (Math.abs(dy) > Math.abs(dx) * 1.5) {
+          cleanup()
+          return
+        }
+        dragging = true
       }
+
       const now = performance.now()
-      if (now > lastT) velocity = ((ev.clientX - lastX) / (now - lastT)) * 1000
-      lastX = ev.clientX
-      lastT = now
+      const dt = now - lastT
+      if (dt > 8) {
+        velocity = ((ev.clientX - lastX) / dt) * 1000
+        lastX = ev.clientX
+        lastT = now
+      }
+
+      if (single) {
+        const progress = clamp(-dx / pageW, 0, 1)
+        rot.set(-progress * 180)
+        return
+      }
+
       if (!turnable) return
-      // the grabbed corner sits at spine + radius·cos(angle): invert that so it tracks the pointer exactly
-      rot.set(-Math.acos(clamp((ev.clientX - spine) / radius, -1, 1)) * DEG)
+      const dist = ev.clientX - spineX
+      const ratio = clamp(dist / R, -1, 1)
+      const angle = -Math.acos(ratio) * DEG
+      rot.set(angle)
     }
 
-    const up = (ev: globalThis.PointerEvent) => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', up)
+    const onPointerUp = (ev: PointerEvent) => {
+      cleanup()
       const dx = ev.clientX - startX
-      if (!active) {
-        if (turnable) onSet(face === 'front' ? i + 1 : i) // a tap, not a drag
+
+      if (!dragging) {
+        if (turnable) onSet(face === 'front' ? i + 1 : i)
         return
       }
-      grab.current = null
-      if (!turnable || (single && dx > 0)) {
-        // swiped backwards through a single page
-        if (dx > 45 || velocity > 400) onSet(i - 1)
+
+      if (single) {
+        if (dx < -40 || velocity < -250) {
+          onSet(i + 1)
+        } else if (dx > 40 || velocity > 250) {
+          onSet(i - 1)
+        } else {
+          animate(rot, 0, { type: 'spring', stiffness: 220, damping: 24 })
+        }
         return
       }
-      const current = rot.get()
-      const nowFlipped = flipped ? !(current > -120 || velocity > 400) : current < -60 || velocity < -400
-      if (nowFlipped !== flipped) onSet(nowFlipped ? i + 1 : i)
-      else animate(rot, flipped ? -180 : 0, { type: 'spring', stiffness: 160, damping: 20, velocity })
+
+      if (!turnable) return
+
+      const currentAngle = rot.get()
+      if (face === 'front') {
+        const shouldFlip = currentAngle < -50 || velocity < -200
+        if (shouldFlip) {
+          onSet(i + 1)
+          animate(rot, -180, { type: 'spring', stiffness: 210, damping: 24, velocity: velocity * 0.4 })
+        } else {
+          animate(rot, 0, { type: 'spring', stiffness: 230, damping: 24, velocity: -velocity * 0.4 })
+        }
+      } else {
+        const shouldFlip = currentAngle > -130 || velocity > 200
+        if (shouldFlip) {
+          onSet(i)
+          animate(rot, 0, { type: 'spring', stiffness: 210, damping: 24, velocity: velocity * 0.4 })
+        } else {
+          animate(rot, -180, { type: 'spring', stiffness: 230, damping: 24, velocity: -velocity * 0.4 })
+        }
+      }
     }
 
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', up)
+    const cleanup = () => {
+      isDraggingRef.current = false
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true })
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
   }
-
-  useEffect(() => {
-    const front = frontRef.current
-    const back = backRef.current
-    const downFront = makeDown('front')
-    const downBack = makeDown('back')
-    front?.addEventListener('pointerdown', downFront)
-    back?.addEventListener('pointerdown', downBack)
-    return () => {
-      front?.removeEventListener('pointerdown', downFront)
-      back?.removeEventListener('pointerdown', downBack)
-    }
-  })
 
   return (
     <motion.div
@@ -255,6 +299,7 @@ function Leaf({ i, total, flipped, delay, single, index, maxIndex, front, back, 
         inert={!frontVisible}
         aria-hidden={!frontVisible}
         data-turnable={canFlipForward || undefined}
+        onPointerDown={handlePointerDown('front')}
       >
         {front}
         <motion.span className="leaf__sheen" style={{ opacity: sheen }} aria-hidden="true" />
@@ -268,6 +313,7 @@ function Leaf({ i, total, flipped, delay, single, index, maxIndex, front, back, 
           inert={!backVisible}
           aria-hidden={!backVisible}
           data-turnable={canFlipBack || undefined}
+          onPointerDown={handlePointerDown('back')}
         >
           {back}
           <motion.span className="leaf__sheen leaf__sheen--back" style={{ opacity: sheen }} aria-hidden="true" />
